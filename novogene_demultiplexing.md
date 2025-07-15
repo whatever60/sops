@@ -89,7 +89,7 @@ Index1Cycles,10,,,
 Index2Cycles,24,,,
 ,,,,
 [BCLConvert_Settings],,,,
-SoftwareVersion,4.3.6,,,
+SoftwareVersion,4.3.13,,,
 OverrideCycles,Y151;I10;N14I10;Y151,,,  # Cycle configuration of your run
 ,,,,
 [BCLConvert_Data],,,,  # everything underneath
@@ -276,7 +276,7 @@ The fastq files will be mostly what we need in the future, but for the sake of d
 aws s3 sync <your-desired-path-to-save-data> s3://<your-bucket-name>/<path-on-s3> --exclude "<run-name>.BCL/*"
 ```
 
-(assuming both the Novogene data and fastq output are in the current directory)
+Make sure to exclude the extracted directory from the upload, i.e., just upload the tar archive, since it contains everything and avoids handling all those individual files.
 
 ## Terminate AWS instance
 
