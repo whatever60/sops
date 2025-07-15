@@ -244,13 +244,13 @@ Replace the path above according to your machine. This step can take an hour.
 
 ## Examine output file size
 
-Check fastq file size by running
+Check fastq file size by running:
 
 ```bash
 ls <your-desired-path-to-save-data>/fastq/*.fastq.gz -lahS
 ```
 
-Inspect fastq sequencing depth by running
+Inspect fastq sequencing depth by running:
 
 ```bash
 cat <your-desired-path-to-save-data>/fastq/Reports/Demultiplex_Stats.csv
