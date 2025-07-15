@@ -1,6 +1,6 @@
 # Demultiplexing Novogene sequencing results
 
-whatever60 2024.12.05
+whatever60 2025.07.15
 
 ## Contents
 1. [Get a Linux machine](#get-a-linux-machine)
@@ -24,20 +24,20 @@ whatever60 2024.12.05
 
 Demultiplexing Novogene data requires modest computation. An AWS instance with 32GB memory and 1TB storage is recommended. The following steps assume your operating system is Ubuntu/Debian.
 
->Alternatively a Windows WSL2 will suffice so that you can do everything locally, and I think with some modification you can also use MacBook, though I haven't tested it.
+>Alternatively, you can run it locally on Windows WSL2 with sufficient space and memory, and I think with some modification you can also use MacOS, though I haven't tested it.
 
 ## Install `bcl-convert` on the Linux machine
 
-Download from Illumina [BCL Convert Software Downloads](https://support.illumina.com/sequencing/sequencing_software/bcl-convert/downloads.html) by selecting the latest CentOS version (here we use version 4.3.6 as an example). You will need to log in and enter a machine serial number (just use `LH00328`) to download it. Put the installer onto your Linux machine (for example with the name `bcl-convert-4.3.6.rpm`)
+Download from Illumina [BCL Convert Software Downloads](https://support.illumina.com/sequencing/sequencing_software/bcl-convert/downloads.html) by selecting the latest **CentOS** version (here we use version 4.3.13 as an example). Log in with an Illumina account is required for the download. Put the installer onto your Linux machine (for example with the name `bcl-convert-4.3.13.rpm`)
 
-Convert its format, and install by running (make sure `alien` is installed).
+Convert its format, and install by running (make sure `alien` and `dpkg` are installed, otherwise install first with `apt`).
 
 ```bash
-sudo alien bcl-convert-4.3.6.rpm
-sudo dpkg -i bcl-convert_4.3.6-3_amd64.deb
+sudo alien bcl-convert-4.3.13.rpm
+sudo dpkg -i bcl-convert_4.3.13-3_amd64.deb
 ```
 
-Test installment by running:
+Test installation by running:
 
 ```bash
 bcl-convert --version
@@ -47,26 +47,29 @@ bcl-convert --version
 
 Do this as soon as you receive email. Data expires after 7 days.
 
-On your Linux machine, run the `wget` command given in the email. You will get the following directory structure:
+On your Linux machine,
+
+`cd <your-desired-path-to-save-data>`
+
+and run the `lftp` command given in the email. You will get the following directory structure:
 
 ```
-├── usftp21.novogene.com
-│   ├── <run_name>.BCL.tar  # the sequencing data
-│   ├── MD5.txt
-│   ├── Report_<a_random_string>.zip  # Novogene QC report
-│   └── checkSize.xls
-└── wget-log
+└── <your-desired-path-to-save-data>
+    ├── <run-name>.BCL.tar  # the sequencing data
+    ├── MD5.txt
+    ├── Report_<a_random_string>.zip  # Novogene QC report
+    └── checkSize.xls
 ```
 
 Untar the sequencing data archive with
 
 ```
-tar xf <run_name>.BCL.tar
+tar xf <run-name>.BCL.tar
 ```
 
-and you will get a Illumina sequencer output data directory named by your run.
+and you will get a Illumina sequencer output data directory named as `<run-name>.BCL`.
 
-These steps can take several hours.
+The download and untar can take several hours.
 
 ## Prepare sample sheet
 
@@ -96,7 +99,7 @@ Lane,Sample_ID,index,index2,
 4,sample_3,AGGCAGAAAT,ACCTAAGCCT,
 ```
 
-I am marking lines you most likely need to customize with a # symbol. Note that the # is not needed in the actual sample sheet. Now I will explain the content in the sample sheet.
+I am marking lines you most likely need to customize with a `#`. In an actual sample sheet, you need to remove the # content. Now I will explain the content in the sample sheet.
 
 ### Name your experiment
 
@@ -110,7 +113,7 @@ In house, we use MiSeq the most. For Novogene, our sequencer model is NovaSeq X 
 
 In our current setting, you are allocated only one lane on the NovaSeq flow cell. As Illumina index is independent across lanes, sample sheet requires lane-index combination for demultiplexing.
 
-Inspect content of `usftp21.novogene.com/<run_name>/Data/Intensities/BaseCalls/`. You should see only one sub-folder, and from its name you can tell the lane number (e.g. `L001`, meaning your sample is on Lane 1).
+Inspect content of `<run-name>.BCL/Data/Intensities/BaseCalls/`. You should see **one and only one** sub-folder, and from its name you can tell the lane number (e.g. `L001`, meaning your sample is on Lane 1).
 
 ### Decide cycle configuration
 
@@ -121,7 +124,7 @@ Illumina sequencing is composed of multiple rounds of cycles. Each cycle generat
 3. Index 2 (aka i5) round
 4. Read 2 round
 
-and each round can have difference cycle number. The cycle configuration of your run can be found in `usftp21.novogene.com/<run_name>/RunInfo.xml`, which says:
+and each round can have difference cycle number. The cycle configuration of your run can be found in `<run-name>.BCL/RunInfo.xml`, which says:
 
 ```
 ...
@@ -136,7 +139,7 @@ and each round can have difference cycle number. The cycle configuration of your
 
 This means your are using **paired-end 151bp sequencing with dual indexing**. Your index 1 round has 10 cycles and index 2 round has 24 cycles.
 
-However, our Illumina index sequences are either 8bp or 10bp. That's why we need to tell the software which cycles in the index rounds actually correspond to our index.
+However, our Illumina index sequences are either 8bp or 10bp. We need to tell the software which cycles in the index rounds actually correspond to our index.
 
 There is a specific syntax to follow to "tell the software". Here are two examples:
 
@@ -153,7 +156,7 @@ There is a specific syntax to follow to "tell the software". Here are two exampl
 
 #### Another example
 
-Another example with a slightly different `usftp21.novogene.com/<run_name>/RunInfo.xml` (`NumCycles="10"` for `Read Number="3"`):
+Another example with a slightly different `<run-name>/RunInfo.xml` (`NumCycles="10"` for `Read Number="3"`):
 
 ```
 ...
@@ -216,6 +219,8 @@ If both 8bp and 10bp indices are used in the sample run, add `AT` to the end of 
 
 After you figure out the above items, you can compile your sample sheet by modifying from the template sample sheet. Given our common Novogene setup, you will just have to change the run name, cycle configuration, and index data.
 
+Save your sample sheet as `<your-desired-path-to-save-data>/SampleSheet.csv`.
+
 ## Run `bcl-convert`
 
 Increase operating system's limit on opened files by running
@@ -228,24 +233,32 @@ Then run:
 
 ```bash
 bcl-convert \
-    --bcl-input-directory <parent_dir>/usftp21.novogene.com/<run_name> \
-    --output-directory <absolute_path_to_fastq_output_dir> \
-    --sample-sheet <parent_dir>/usftp21.novogene.com/<run_name>/SampleSheet.csv \
+    --bcl-input-directory <your-desired-path-to-save-data>/<run-name>.BCL \
+    --output-directory <your-desired-path-to-save-data>/fastq \
+    --sample-sheet <your-desired-path-to-save-data>/SampleSheet.csv \
     --force \
     --bcl-num-parallel-tiles 1
 ```
 
-Replace the path arguments according to your machine. The execution can take an hour.
+Replace the path above according to your machine. This step can take an hour.
 
 ## Examine output file size
 
 Check fastq file size by running
 
 ```bash
-ls <fastq_output_dir> -lahS
+ls <your-desired-path-to-save-data>/fastq/*.fastq.gz -lahS
 ```
 
-File size is a reasonable approximation for sequencing depth, so by looking at file sizes you can confirm a couple of things:
+Inspect fastq sequencing depth by running
+
+```bash
+cat <your-desired-path-to-save-data>/fastq/Reports/Demultiplex_Stats.csv
+```
+
+and looking at the `# Reads` column.
+
+With these statistics, you can confirm a couple of things:
 
 1. Do most of you samples have nonzero sequencing depth?
 
@@ -257,10 +270,10 @@ File size is a reasonable approximation for sequencing depth, so by looking at f
 
 ## Upload data onto AWS
 
-The fastq files will be mostly what we need in the future, but for the sake of data archiving, upload all data except for `.cbcl` files (since there are too many of these small files, very unfriendly to AWS) onto your AWS bucket.
+The fastq files will be mostly what we need in the future, but for the sake of data archiving, upload the raw data from Novogene as well.
 
 ```bash
-aws s3 sync . s3://<your_bucket>/<directory_name_you_like>  --exclude "*.cbcl"
+aws s3 sync <your-desired-path-to-save-data> s3://<your-bucket-name>/<path-on-s3> --exclude "<run-name>.BCL/*"
 ```
 
 (assuming both the Novogene data and fastq output are in the current directory)
